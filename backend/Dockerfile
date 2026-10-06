@@ -1,11 +1,11 @@
-# Stage 1: Build JAR with Maven
-FROM eclipse-temurin:17-jdk-jammy AS build
+# Stage 1: Build JAR with Maven & Java 17
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
 COPY pom.xml .
 COPY src ./src
 
-RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Stage 2: Minimal Runtime Image
 FROM eclipse-temurin:17-jre-jammy
