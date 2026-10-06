@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// Ensure baseURL never fails even if VITE_API_URL is omitted or has a trailing slash
+const rawUrl = import.meta.env.VITE_API_URL || 'https://internmatch-backend-jyk3.onrender.com';
+const baseURL = rawUrl ? (rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl) : '';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: baseURL,
+  timeout: 30000, // 30s timeout for cloud cold starts
   headers: {
     'Content-Type': 'application/json',
   },
