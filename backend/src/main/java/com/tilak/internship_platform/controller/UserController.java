@@ -73,32 +73,61 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public User register(@RequestBody User user) {
+    public Map<String, Object> register(@RequestBody User user) {
         if (user.getEmail() == null || user.getEmail().isBlank()) {
-            throw new IllegalArgumentException("Email is required");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Email is required"
+            );
         }
         if (user.getPassword() == null || user.getPassword().length() < 6) {
-            throw new IllegalArgumentException("Password must be at least 6 characters");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Password must be at least 6 characters"
+            );
         }
 
-        Optional<User> existingUser =
-                userRepository.findByEmail(user.getEmail().trim().toLowerCase());
+        String normalizedEmail = user.getEmail().trim().toLowerCase();
+        Optional<User> existingUser = userRepository.findByEmail(normalizedEmail);
 
         if (existingUser.isPresent()) {
-            throw new RuntimeException("Email already registered");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "An account with this email already exists. Please sign in instead."
+            );
         }
 
         if (user.getRole() == null || user.getRole().isBlank()) {
             user.setRole("STUDENT");
         }
 
-        user.setEmail(user.getEmail().trim().toLowerCase());
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         User savedUser = userRepository.save(user);
-        savedUser.setPassword(null);
 
-        return savedUser;
+        String token = jwtService.generateToken(
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getRole()
+        );
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", savedUser.getId());
+        data.put("name", savedUser.getName());
+        data.put("email", savedUser.getEmail());
+        data.put("role", savedUser.getRole());
+        data.put("branch", savedUser.getBranch());
+        data.put("graduationYear", savedUser.getGraduationYear());
+        data.put("college", savedUser.getCollege());
+        data.put("phone", savedUser.getPhone());
+        data.put("hasResume", false);
+        data.put("token", token);
+
+        Map<String, Object> response = new HashMap<>(data);
+        response.put("success", true);
+        response.put("data", data);
+        response.put("message", "Registration successful");
+
+        return response;
     }
 
     @PostMapping("/login")
@@ -160,6 +189,8 @@ public class UserController {
         response.put("phone", user.getPhone());
         response.put("hasResume", hasResume);
         response.put("token", token);
+        response.put("success", true);
+        response.put("data", new HashMap<>(response));
 
         return response;
     }

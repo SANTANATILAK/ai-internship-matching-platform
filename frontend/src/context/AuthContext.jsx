@@ -36,28 +36,28 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const res = await api.post(API_ENDPOINTS.LOGIN, { email, password });
-    if (res.data.success) {
-      const authData = res.data.data;
+    const authData = res.data?.data || res.data;
+    if (authData && authData.token) {
       setToken(authData.token);
       setUser(authData);
       localStorage.setItem('token', authData.token);
       localStorage.setItem('user', JSON.stringify(authData));
       return authData;
     }
-    throw new Error(res.data.message || 'Login failed');
+    throw new Error(res.data?.message || 'Login failed');
   };
 
   const register = async (registerData) => {
     const res = await api.post(API_ENDPOINTS.REGISTER, registerData);
-    if (res.data.success) {
-      const authData = res.data.data;
+    const authData = res.data?.data || res.data;
+    if (authData && authData.token) {
       setToken(authData.token);
       setUser(authData);
       localStorage.setItem('token', authData.token);
       localStorage.setItem('user', JSON.stringify(authData));
       return authData;
     }
-    throw new Error(res.data.message || 'Registration failed');
+    throw new Error(res.data?.message || 'Registration failed');
   };
 
   const logout = () => {

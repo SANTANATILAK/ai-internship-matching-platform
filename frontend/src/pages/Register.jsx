@@ -52,7 +52,8 @@ const Register = () => {
       await register(registerPayload);
       navigate('/resume');
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Registration failed');
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Registration failed';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -72,13 +73,20 @@ const Register = () => {
 
         {error && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--danger-bg)', color: 'var(--danger)',
-            fontSize: '0.85rem', marginBottom: '1.25rem'
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)',
+            backgroundColor: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#f87171', fontSize: '0.875rem', marginBottom: '1.25rem'
           }}>
-            <AlertCircle size={18} />
-            <span>{error}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+            {error.toLowerCase().includes('already') && (
+              <Link to="/login" style={{ color: '#38bdf8', fontWeight: 600, textDecoration: 'underline', marginLeft: '0.75rem', whiteSpace: 'nowrap' }}>
+                Sign In &rarr;
+              </Link>
+            )}
           </div>
         )}
 
