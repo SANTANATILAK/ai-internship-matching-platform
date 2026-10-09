@@ -27,15 +27,15 @@ const OpportunityCard = ({
   const [applied, setApplied] = useState(false);
   const [notes, setNotes] = useState('');
 
-  const oppId = opportunity.id || (matchData && matchData.opportunityId);
-  const companyName = opportunity.companyName || (opportunity.company && opportunity.company.name) || (matchData && matchData.companyName) || 'Tech Enterprise';
-  const domain = opportunity.companyDomain || (opportunity.company && opportunity.company.officialDomain) || (matchData && matchData.companyDomain) || '';
-  const title = opportunity.title || (matchData && matchData.title);
-  const location = opportunity.location || (matchData && matchData.location) || 'India';
-  const workType = opportunity.workType || (matchData && matchData.workType) || 'HYBRID';
-  const type = opportunity.type || (matchData && matchData.type) || 'INTERNSHIP';
-  const stipend = opportunity.stipend || (matchData && matchData.stipend);
-  const applyUrl = opportunity.applyUrl || (matchData && matchData.applyUrl);
+  const oppId = opportunity?.id || (matchData && (matchData.opportunityId || matchData.internshipId));
+  const companyName = opportunity?.companyName || (typeof opportunity?.company === 'string' ? opportunity.company : opportunity?.company?.name) || (matchData && (matchData.company || matchData.companyName)) || 'Tech Enterprise';
+  const domain = opportunity?.companyDomain || (opportunity?.company && opportunity.company.officialDomain) || (matchData && matchData.companyDomain) || '';
+  const title = opportunity?.title || (matchData && matchData.title) || 'Software Engineer Intern';
+  const location = opportunity?.location || (matchData && matchData.location) || 'India';
+  const workType = opportunity?.workType || opportunity?.workMode || (matchData && (matchData.workType || matchData.workMode)) || 'HYBRID';
+  const type = opportunity?.type || opportunity?.jobType || (matchData && (matchData.type || matchData.jobType)) || 'INTERNSHIP';
+  const stipend = opportunity?.stipend || opportunity?.salary || (matchData && (matchData.stipend || matchData.salary));
+  const applyUrl = opportunity?.applyUrl || (matchData && matchData.applyUrl);
 
   const matchScore = matchData ? matchData.matchPercentage : null;
   const matchLevel = matchData ? matchData.matchLevel : null;

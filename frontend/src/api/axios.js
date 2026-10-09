@@ -1,12 +1,25 @@
 import axios from 'axios';
 
-// Ensure baseURL never fails even if VITE_API_URL is omitted or has a trailing slash
-const rawUrl = import.meta.env.VITE_API_URL || 'https://internmatch-backend-jyk3.onrender.com';
-const baseURL = rawUrl ? (rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl) : '';
+// Determine backend URL dynamically:
+// 1. Explicit VITE_API_URL environment variable if set
+// 2. When running on localhost / local dev machine: http://localhost:9090
+// 3. Cloud / production deployment: https://internmatch-backend-jyk3.onrender.com
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    const custom = import.meta.env.VITE_API_URL;
+    return custom.endsWith('/') ? custom.slice(0, -1) : custom;
+  }
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:9090';
+  }
+  return 'https://internmatch-backend-jyk3.onrender.com';
+};
+
+const baseURL = getBaseUrl();
 
 const api = axios.create({
   baseURL: baseURL,
-  timeout: 30000, // 30s timeout for cloud cold starts
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },

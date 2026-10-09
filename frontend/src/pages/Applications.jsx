@@ -19,9 +19,8 @@ const Applications = () => {
     setLoading(true);
     try {
       const res = await api.get(API_ENDPOINTS.USER_APPLICATIONS);
-      if (res.data.success) {
-        setApplications(res.data.data);
-      }
+      const apps = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      setApplications(Array.isArray(apps) ? apps : []);
     } catch (err) {
       console.error('Error fetching applications:', err);
     } finally {
@@ -38,11 +37,9 @@ const Applications = () => {
       const res = await api.put(API_ENDPOINTS.APPLICATION_STATUS(appId), {
         status: newStatus,
       });
-      if (res.data.success) {
-        setApplications((prev) =>
-          prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app))
-        );
-      }
+      setApplications((prev) =>
+        prev.map((app) => (app.id === appId ? { ...app, status: newStatus } : app))
+      );
     } catch (err) {
       console.error('Error updating application status:', err);
     }
@@ -81,13 +78,13 @@ const Applications = () => {
                   const appliedDate = app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : 'Recent';
 
                   return (
-                    <tr key={app.id} style={{ borderBottom: '1px solid #1a2234' }}>
+                    <tr key={app.id || app.applicationId} style={{ borderBottom: '1px solid #1a2234' }}>
                       <td style={{ padding: '1.25rem' }}>
                         <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem' }}>
-                          {opp?.title}
+                          {opp?.title || app.title || 'Software Engineering Intern'}
                         </div>
                         <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                          {opp?.company?.name || 'Enterprise'} • {opp?.location}
+                          {opp?.company?.name || opp?.company || app.company || 'Enterprise Leader'} • {opp?.location || app.location || 'India'}
                         </div>
                       </td>
 
@@ -101,7 +98,7 @@ const Applications = () => {
                         <select
                           className="form-select"
                           value={app.status}
-                          onChange={(e) => handleStatusChange(app.id, e.target.value)}
+                          onChange={(e) => handleStatusChange(app.id || app.applicationId, e.target.value)}
                           style={{
                             backgroundColor: statusStyle.bg,
                             color: statusStyle.text,
@@ -127,9 +124,9 @@ const Applications = () => {
                       </td>
 
                       <td style={{ padding: '1.25rem', textAlign: 'right' }}>
-                        {opp?.applyUrl && (
+                        {(opp?.applyUrl || app.applyUrl) && (
                           <a
-                            href={opp.applyUrl}
+                            href={opp?.applyUrl || app.applyUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn btn-secondary btn-sm"

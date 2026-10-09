@@ -20,6 +20,8 @@ const Login = () => {
       const authData = await login(email, password);
       if (authData.role === 'ADMIN') {
         navigate('/admin');
+      } else if (authData.hasResume === false) {
+        navigate('/resume');
       } else {
         navigate('/dashboard');
       }

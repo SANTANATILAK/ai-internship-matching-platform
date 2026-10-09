@@ -1,34 +1,43 @@
 package com.tilak.internship_platform.controller;
 
-import com.tilak.internship_platform.dto.response.ApiResponse;
-import com.tilak.internship_platform.dto.response.AtsScoreResponse;
-import com.tilak.internship_platform.security.UserPrincipal;
-import com.tilak.internship_platform.service.AtsService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import java.security.Principal;
+import java.util.Map;
+import java.util.Optional;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.tilak.internship_platform.entity.User;
+import com.tilak.internship_platform.repository.UserRepository;
 
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175"
+})
 @RestController
 @RequestMapping("/api/ats")
 public class AtsController {
 
-    private final AtsService atsService;
+    private final ResumeController resumeController;
+    private final UserRepository userRepository;
 
-    public AtsController(AtsService atsService) {
-        this.atsService = atsService;
+    public AtsController(ResumeController resumeController, UserRepository userRepository) {
+        this.resumeController = resumeController;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/latest")
-    public ResponseEntity<ApiResponse<AtsScoreResponse>> getLatestAtsScore(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        AtsScoreResponse response = atsService.getLatestAtsScore(userPrincipal.getId());
-        return ResponseEntity.ok(ApiResponse.success(response));
+    public Map<String, Object> getLatestAts(Principal principal) {
+        return resumeController.getLatestResumeFromPrincipal(principal);
     }
 
     @GetMapping("/history")
-    public ResponseEntity<ApiResponse<List<AtsScoreResponse>>> getAtsHistory(@AuthenticationPrincipal UserPrincipal userPrincipal) {
-        List<AtsScoreResponse> list = atsService.getAtsHistory(userPrincipal.getId());
-        return ResponseEntity.ok(ApiResponse.success(list));
+    public Map<String, Object> getAtsHistory(Principal principal) {
+        return resumeController.getLatestResumeFromPrincipal(principal);
     }
 }

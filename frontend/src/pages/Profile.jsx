@@ -28,8 +28,8 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         const res = await api.get(API_ENDPOINTS.PROFILE);
-        if (res.data.success) {
-          const p = res.data.data;
+        const p = res.data?.data || res.data;
+        if (p && (p.name || p.email || p.branch)) {
           setFormData({
             name: p.name || '',
             email: p.email || '',
@@ -69,9 +69,16 @@ const Profile = () => {
 
     try {
       const res = await api.put(API_ENDPOINTS.PROFILE, formData);
-      if (res.data.success) {
-        setMessage('Profile updated successfully! Match scores have been recomputed.');
+      setMessage('Profile updated successfully! Match scores and graduation batch settings have been refreshed.');
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          localStorage.setItem('user', JSON.stringify({ ...u, ...formData }));
+        } catch (ignored) {}
       }
+      localStorage.setItem('branch', formData.branch);
+      localStorage.setItem('graduationYear', String(formData.graduationYear));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');
     } finally {

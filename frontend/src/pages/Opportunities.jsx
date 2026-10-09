@@ -30,9 +30,8 @@ const Opportunities = () => {
 
       const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
       const res = await api.get(url);
-      if (res.data.success) {
-        setOpportunities(res.data.data);
-      }
+      const list = res.data?.data || (Array.isArray(res.data) ? res.data : (res.data?.content || []));
+      setOpportunities(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error('Error fetching opportunities:', err);
     } finally {

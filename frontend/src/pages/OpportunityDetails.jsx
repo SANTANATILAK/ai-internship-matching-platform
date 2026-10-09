@@ -33,24 +33,27 @@ const OpportunityDetails = () => {
       setLoading(true);
       try {
         const res = await api.get(API_ENDPOINTS.OPPORTUNITY_DETAIL(id));
-        if (res.data.success) {
-          setOpportunity(res.data.data);
+        const oppData = res.data?.data || res.data;
+        if (oppData && (oppData.id || oppData.title)) {
+          setOpportunity(oppData);
         }
 
         if (user) {
           // Check if match detail available
           try {
             const mRes = await api.get(API_ENDPOINTS.MATCH_DETAIL(id));
-            if (mRes.data.success) {
-              setMatchData(mRes.data.data);
+            const mData = mRes.data?.data || mRes.data;
+            if (mData && (mData.matchPercentage !== undefined || mData.matchedSkills)) {
+              setMatchData(mData);
             }
           } catch (ignored) {}
 
           // Check if saved
           try {
             const sRes = await api.get(API_ENDPOINTS.CHECK_SAVED(id));
-            if (sRes.data.success) {
-              setSaved(sRes.data.data.saved);
+            const sData = sRes.data?.data || sRes.data;
+            if (sData) {
+              setSaved(Boolean(sData.saved || sData.isSaved));
             }
           } catch (ignored) {}
         }
@@ -127,7 +130,7 @@ const OpportunityDetails = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
               <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {opportunity.companyName}
+                {opportunity.companyName || opportunity.company || 'Enterprise Leader'}
               </span>
               <span className="badge badge-verified">
                 <CheckCircle size={12} /> Verified Company
@@ -141,14 +144,14 @@ const OpportunityDetails = () => {
                 <MapPin size={16} color="var(--primary)" /> {opportunity.location || 'India'}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Building2 size={16} color="#8b5cf6" /> {opportunity.workType}
+                <Building2 size={16} color="#8b5cf6" /> {opportunity.workType || opportunity.workMode || 'Hybrid'}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Clock size={16} color="#10b981" /> {opportunity.type.replace('_', ' ')}
+                <Clock size={16} color="#10b981" /> {(opportunity.type || opportunity.jobType || 'Internship').replace('_', ' ')}
               </span>
-              {opportunity.stipend && (
+              {(opportunity.stipend || opportunity.salary) && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#f59e0b', fontWeight: 600 }}>
-                  <Banknote size={16} /> {opportunity.stipend}
+                  <Banknote size={16} /> {opportunity.stipend || opportunity.salary}
                 </span>
               )}
             </div>
@@ -213,8 +216,8 @@ const OpportunityDetails = () => {
           <Layers size={18} color="var(--primary)" /> Required Core Skills
         </h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          {opportunity.requiredSkills ? (
-            opportunity.requiredSkills.split(',').map((sk, idx) => (
+          {(opportunity.requiredSkills || opportunity.skills) ? (
+            (opportunity.requiredSkills || opportunity.skills).split(',').map((sk, idx) => (
               <span key={idx} className="skill-chip" style={{ fontSize: '0.825rem', padding: '0.35rem 0.75rem' }}>
                 {sk.trim()}
               </span>
@@ -230,15 +233,15 @@ const OpportunityDetails = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
           <div>
             <span style={{ color: 'var(--text-muted)' }}>Eligible Batches: </span>
-            <strong>{opportunity.graduationYears || 'Open to all engineering batches'}</strong>
+            <strong>{opportunity.graduationYears || 'Open to all engineering batches (2025, 2026, 2027, 2028)'}</strong>
           </div>
           <div>
             <span style={{ color: 'var(--text-muted)' }}>Degree Required: </span>
-            <strong>{opportunity.degreeRequirements || 'B.Tech / B.E. / MCA'}</strong>
+            <strong>{opportunity.degreeRequirements || 'B.Tech / B.E. / MCA / M.Tech'}</strong>
           </div>
           <div>
             <span style={{ color: 'var(--text-muted)' }}>Branches: </span>
-            <strong>{opportunity.branchRequirements || 'CSE / IT / ECE / AI'}</strong>
+            <strong>{opportunity.branchRequirements || opportunity.branch || 'CSE / AI & ML / Data Science / IT / ECE'}</strong>
           </div>
         </div>
       </div>

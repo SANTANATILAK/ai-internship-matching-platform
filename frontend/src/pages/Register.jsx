@@ -8,6 +8,7 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     phone: '',
     branch: 'Computer Science and Engineering',
     college: '',
@@ -34,11 +35,22 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register(formData);
-      navigate('/dashboard');
+      const { confirmPassword, ...registerPayload } = formData;
+      await register(registerPayload);
+      navigate('/resume');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Registration failed');
     } finally {
@@ -114,16 +126,29 @@ const Register = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Phone Number</label>
+              <label className="form-label">Confirm Password *</label>
               <input
-                type="text"
-                name="phone"
+                type="password"
+                name="confirmPassword"
                 className="form-input"
-                placeholder="+91-9876543210"
-                value={formData.phone}
+                placeholder="Re-enter password"
+                value={formData.confirmPassword}
                 onChange={handleChange}
+                required
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Phone Number</label>
+            <input
+              type="text"
+              name="phone"
+              className="form-input"
+              placeholder="+91-9876543210"
+              value={formData.phone}
+              onChange={handleChange}
+            />
           </div>
 
           <div className="grid-2">

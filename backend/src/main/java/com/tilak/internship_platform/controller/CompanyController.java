@@ -1,30 +1,42 @@
 package com.tilak.internship_platform.controller;
 
-import com.tilak.internship_platform.dto.response.ApiResponse;
-import com.tilak.internship_platform.entity.Company;
-import com.tilak.internship_platform.service.CompanyService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import java.util.Map;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.tilak.internship_platform.entity.Company;
+import com.tilak.internship_platform.repository.CompanyRepository;
+
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175"
+})
 @RestController
 @RequestMapping("/api/companies")
 public class CompanyController {
 
-    private final CompanyService companyService;
+    private final CompanyRepository companyRepository;
 
-    public CompanyController(CompanyService companyService) {
-        this.companyService = companyService;
+    public CompanyController(CompanyRepository companyRepository) {
+        this.companyRepository = companyRepository;
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Company>>> getAllCompanies() {
-        return ResponseEntity.ok(ApiResponse.success(companyService.getVerifiedCompanies()));
+    public List<Company> getCompanies() {
+        return companyRepository.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Company>> getCompanyById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(companyService.getCompanyById(id)));
+    public Company getCompanyById(@PathVariable Long id) {
+        return companyRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
     }
 }

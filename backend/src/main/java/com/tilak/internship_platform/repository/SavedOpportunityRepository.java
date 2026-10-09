@@ -1,11 +1,12 @@
 package com.tilak.internship_platform.repository;
 
-import com.tilak.internship_platform.entity.SavedOpportunity;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.tilak.internship_platform.entity.SavedOpportunity;
 
 @Repository
 public interface SavedOpportunityRepository extends JpaRepository<SavedOpportunity, Long> {
@@ -13,5 +14,4 @@ public interface SavedOpportunityRepository extends JpaRepository<SavedOpportuni
     Optional<SavedOpportunity> findByUserIdAndOpportunityId(Long userId, Long opportunityId);
     boolean existsByUserIdAndOpportunityId(Long userId, Long opportunityId);
     void deleteByUserIdAndOpportunityId(Long userId, Long opportunityId);
-    long countByUserId(Long userId);
 }

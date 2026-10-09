@@ -24,20 +24,26 @@ const ResumeUpload = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const [isDragging, setIsDragging] = useState(false);
+
   useEffect(() => {
     // Try to load latest ATS score & resume info if previously uploaded
     const fetchLatest = async () => {
       try {
         const atsRes = await api.get(API_ENDPOINTS.ATS_LATEST);
-        if (atsRes.data.success) {
-          const atsData = atsRes.data.data;
+        const atsData = atsRes.data?.data || atsRes.data;
+        if (atsData && (atsData.atsScore !== undefined || atsData.skills)) {
           setAnalysis({
-            atsScore: atsData.atsScore,
-            strengths: atsData.strengths,
-            weaknesses: atsData.weaknesses,
-            missingSections: atsData.missingSections,
-            suggestions: atsData.suggestions,
-            detectedKeywords: atsData.detectedKeywords,
+            atsScore: atsData.atsScore || 75,
+            strengths: Array.isArray(atsData.strengths) ? atsData.strengths : [],
+            weaknesses: Array.isArray(atsData.weaknesses) ? atsData.weaknesses : [],
+            missingSections: Array.isArray(atsData.missingSections) ? atsData.missingSections : (atsData.missingSkills || []),
+            suggestions: Array.isArray(atsData.suggestions) ? atsData.suggestions : [],
+            detectedKeywords: atsData.detectedKeywords || atsData.skills || [],
+            parsedSkills: atsData.parsedSkills || (Array.isArray(atsData.skills) ? atsData.skills.join(', ') : ''),
+            educationDetails: atsData.detectedEducation || atsData.educationDetails,
+            graduationYear: atsData.detectedGraduationYear || atsData.graduationYear,
+            experienceYears: atsData.experienceYears || 0
           });
         }
       } catch (ignored) {}
@@ -45,22 +51,47 @@ const ResumeUpload = () => {
     fetchLatest();
   }, []);
 
+  const validateAndSetFile = (selected) => {
+    if (!selected) return;
+    const name = selected.name.toLowerCase();
+    if (!name.endsWith('.pdf') && !name.endsWith('.docx')) {
+      setError('Please upload a PDF or DOCX resume (.pdf or .docx)');
+      return;
+    }
+    if (selected.size > 10 * 1024 * 1024) {
+      setError('Resume file must be 10MB or smaller');
+      return;
+    }
+    setFile(selected);
+    setError('');
+  };
+
   const handleFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (selected) {
-      if (!selected.name.toLowerCase().endsWith('.pdf')) {
-        setError('Please upload a PDF document (.pdf format only)');
-        return;
-      }
-      setFile(selected);
-      setError('');
+    validateAndSetFile(e.target.files[0]);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      validateAndSetFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) {
-      setError('Please select a PDF file first');
+      setError('Please select a PDF or DOCX file first');
       return;
     }
 
@@ -70,18 +101,38 @@ const ResumeUpload = () => {
 
     const formData = new FormData();
     formData.append('file', file);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u.id) formData.append('userId', u.id);
+      } catch (ignored) {}
+    }
 
     try {
       const res = await api.post(API_ENDPOINTS.RESUME_UPLOAD, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (res.data.success) {
-        setAnalysis(res.data.data);
+      const data = res.data?.data || res.data;
+      if (data) {
+        setAnalysis({
+          atsScore: data.atsScore || 75,
+          strengths: Array.isArray(data.strengths) ? data.strengths : [],
+          weaknesses: Array.isArray(data.weaknesses) ? data.weaknesses : [],
+          missingSections: Array.isArray(data.missingSections) ? data.missingSections : (data.missingSkills || []),
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+          detectedKeywords: data.detectedKeywords || data.skills || [],
+          parsedSkills: data.parsedSkills || (Array.isArray(data.skills) ? data.skills.join(', ') : ''),
+          educationDetails: data.detectedEducation || data.educationDetails,
+          graduationYear: data.detectedGraduationYear || data.graduationYear,
+          experienceYears: data.experienceYears || 0
+        });
         setSuccessMsg('Resume parsed, analyzed, and scored successfully!');
+        localStorage.setItem('hasResume', 'true');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to upload and parse resume. Please try another PDF.');
+      setError(err.response?.data?.message || err.message || 'Failed to upload and parse resume. Please check format.');
     } finally {
       setUploading(false);
     }
@@ -94,26 +145,31 @@ const ResumeUpload = () => {
           Resume Parsing & ATS Evaluation Center
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          Upload your PDF resume to benchmark against enterprise applicant tracking systems
+          Upload your PDF or DOCX resume to benchmark against enterprise applicant tracking systems
         </p>
       </div>
 
       {/* Upload Drop Zone Card */}
       <div className="card">
         <form onSubmit={handleUpload}>
-          <div style={{
-            border: '2px dashed var(--border-color)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '2.5rem 1.5rem',
-            textAlign: 'center',
-            backgroundColor: 'rgba(26, 34, 52, 0.4)',
-            cursor: 'pointer',
-            transition: 'border-color 0.2s ease',
-          }}>
+          <div 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            style={{
+              border: isDragging ? '2px dashed var(--primary)' : '2px dashed var(--border-color)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '2.5rem 1.5rem',
+              textAlign: 'center',
+              backgroundColor: isDragging ? 'var(--primary-light)' : 'rgba(26, 34, 52, 0.4)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
             <input 
               type="file" 
               id="resume-input"
-              accept=".pdf,application/pdf"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
@@ -126,10 +182,10 @@ const ResumeUpload = () => {
                 <Upload size={28} />
               </div>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-                {file ? file.name : 'Click to Browse or Drag & Drop PDF Resume'}
+                {file ? file.name : 'Click to Browse or Drag & Drop PDF / DOCX Resume'}
               </h3>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                PDF format only • Maximum size 10MB • Text-based resumes recommended
+                PDF and DOCX supported • Maximum size 10MB • Explainable 0–100 ATS scoring
               </p>
             </label>
           </div>
@@ -146,22 +202,33 @@ const ResumeUpload = () => {
           {successMsg && (
             <div style={{
               marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.85rem'
+              backgroundColor: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.85rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
             }}>
-              <CheckCircle size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-              {successMsg}
+              <div>
+                <CheckCircle size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                {successMsg}
+              </div>
+              <a href="/matches" className="btn btn-sm btn-secondary" style={{ marginLeft: '1rem' }}>
+                View Matches →
+              </a>
             </div>
           )}
 
-          <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            {analysis && (
+              <a href="/matches" className="btn btn-secondary" style={{ padding: '0.75rem 1.25rem' }}>
+                <Sparkles size={16} /> Explore AI Matches
+              </a>
+            )}
             <button
               type="submit"
               className="btn btn-primary"
               disabled={!file || uploading}
-              style={{ padding: '0.75rem 1.75rem' }}
+              style={{ padding: '0.75rem 1.75rem', marginLeft: 'auto' }}
             >
               <Sparkles size={18} />
-              <span>{uploading ? 'Parsing PDF & Scoring ATS...' : 'Upload & Analyze Resume'}</span>
+              <span>{uploading ? 'Analyzing Document & Scoring...' : 'Upload & Analyze Resume'}</span>
             </button>
           </div>
         </form>

@@ -1,75 +1,154 @@
 package com.tilak.internship_platform.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "resumes")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Resume {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private Long userId;
+    private String fileName;
 
-    @Column(name = "original_filename", nullable = false)
-    private String originalFilename;
-
-    @Column(name = "stored_filename", nullable = false)
-    private String storedFilename;
-
-    @Column(name = "extracted_text", columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "TEXT")
     private String extractedText;
 
-    @Column(name = "parsed_skills", columnDefinition = "TEXT")
-    private String parsedSkills;
+    private Integer atsScore;
 
-    @Column(name = "education_details", columnDefinition = "TEXT")
-    private String educationDetails;
+    @Column(columnDefinition = "TEXT")
+    private String strengths;
 
-    @Column(name = "graduation_year")
-    private Integer graduationYear;
+    @Column(columnDefinition = "TEXT")
+    private String weaknesses;
 
-    @Column(name = "experience_years")
-    @Builder.Default
-    private Double experienceYears = 0.0;
+    @Column(columnDefinition = "TEXT")
+    private String missingSkills;
 
-    @Column(name = "parsed_projects", columnDefinition = "TEXT")
-    private String parsedProjects;
+    @Column(columnDefinition = "TEXT")
+    private String suggestions;
 
-    @Column(name = "parsed_certifications", columnDefinition = "TEXT")
-    private String parsedCertifications;
+    @Column(columnDefinition = "TEXT")
+    private String detectedSkills;
 
-    @Column(name = "ats_score")
-    @Builder.Default
-    private Integer atsScore = 0;
+    private String detectedEducation;
+    private Integer detectedGraduationYear;
 
-    @Column(name = "ats_feedback_json", columnDefinition = "TEXT")
-    private String atsFeedbackJson;
+    private LocalDateTime uploadedAt;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    public Resume() {
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getExtractedText() {
+        return extractedText;
+    }
+
+    public void setExtractedText(String extractedText) {
+        this.extractedText = extractedText;
+    }
+
+    public Integer getAtsScore() {
+        return atsScore;
+    }
+
+    public void setAtsScore(Integer atsScore) {
+        this.atsScore = atsScore;
+    }
+
+    public String getStrengths() {
+        return strengths;
+    }
+
+    public void setStrengths(String strengths) {
+        this.strengths = strengths;
+    }
+
+    public String getWeaknesses() {
+        return weaknesses;
+    }
+
+    public void setWeaknesses(String weaknesses) {
+        this.weaknesses = weaknesses;
+    }
+
+    public String getMissingSkills() {
+        return missingSkills;
+    }
+
+    public void setMissingSkills(String missingSkills) {
+        this.missingSkills = missingSkills;
+    }
+
+    public String getSuggestions() {
+        return suggestions;
+    }
+
+    public void setSuggestions(String suggestions) {
+        this.suggestions = suggestions;
+    }
+
+    public String getDetectedSkills() {
+        return detectedSkills;
+    }
+
+    public void setDetectedSkills(String detectedSkills) {
+        this.detectedSkills = detectedSkills;
+    }
+
+    public String getDetectedEducation() {
+        return detectedEducation;
+    }
+
+    public void setDetectedEducation(String detectedEducation) {
+        this.detectedEducation = detectedEducation;
+    }
+
+    public Integer getDetectedGraduationYear() {
+        return detectedGraduationYear;
+    }
+
+    public void setDetectedGraduationYear(Integer detectedGraduationYear) {
+        this.detectedGraduationYear = detectedGraduationYear;
+    }
+
+    public LocalDateTime getUploadedAt() {
+        return uploadedAt;
+    }
+
+    public void setUploadedAt(LocalDateTime uploadedAt) {
+        this.uploadedAt = uploadedAt;
     }
 }

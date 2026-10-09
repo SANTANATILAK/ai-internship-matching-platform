@@ -12,9 +12,8 @@ const SavedOpportunities = () => {
     setLoading(true);
     try {
       const res = await api.get(API_ENDPOINTS.SAVED_OPPORTUNITIES);
-      if (res.data.success) {
-        setSavedItems(res.data.data);
-      }
+      const items = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      setSavedItems(Array.isArray(items) ? items : []);
     } catch (err) {
       console.error('Error fetching saved opportunities:', err);
     } finally {
@@ -28,7 +27,7 @@ const SavedOpportunities = () => {
 
   const handleSaveToggle = (oppId, isSaved) => {
     if (!isSaved) {
-      setSavedItems((prev) => prev.filter((item) => item.opportunity.id !== oppId));
+      setSavedItems((prev) => prev.filter((item) => (item.opportunity?.id || item.id || item.opportunityId) !== oppId));
     }
   };
 
@@ -53,8 +52,8 @@ const SavedOpportunities = () => {
         <div className="grid-3">
           {savedItems.map((item) => (
             <OpportunityCard
-              key={item.id}
-              opportunity={item.opportunity}
+              key={item.id || item.opportunityId}
+              opportunity={item.opportunity || item}
               isSavedInitially={true}
               onSaveToggle={handleSaveToggle}
             />

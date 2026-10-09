@@ -1,67 +1,127 @@
 package com.tilak.internship_platform.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "companies")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Company {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 150)
+    @Column(nullable = false)
     private String name;
 
-    @Column(name = "official_domain", nullable = false, length = 150)
+    @Column(nullable = false, unique = true, length = 512)
+    private String normalizedName;
+
     private String officialDomain;
-
-    @Column(name = "career_url", nullable = false, length = 500)
-    private String careerUrl;
-
     @Column(columnDefinition = "TEXT")
-    private String description;
-
-    @Column(length = 100)
-    private String industry;
-
-    @Column(length = 150)
-    private String location;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private boolean verified = false;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "verification_status", nullable = false, length = 30)
-    @Builder.Default
-    private VerificationStatus verificationStatus = VerificationStatus.REVIEW;
-
-    @Column(name = "trust_score")
-    @Builder.Default
-    private Integer trustScore = 50;
-
-    @Column(name = "created_at", updatable = false)
+    private String careersUrl;
+    @Column(columnDefinition = "TEXT")
+    private String acceptedBranches;
+    private String verificationStatus = "REVIEW";
+    private Boolean active = true;
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    private LocalDateTime lastCheckedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    public Company() {
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getNormalizedName() {
+        return normalizedName;
+    }
+
+    public void setNormalizedName(String normalizedName) {
+        this.normalizedName = normalizedName;
+    }
+
+    public String getOfficialDomain() {
+        return officialDomain;
+    }
+
+    public void setOfficialDomain(String officialDomain) {
+        this.officialDomain = officialDomain;
+    }
+
+    public String getCareersUrl() {
+        return careersUrl;
+    }
+
+    public void setCareersUrl(String careersUrl) {
+        this.careersUrl = careersUrl;
+    }
+
+    public String getAcceptedBranches() {
+        return acceptedBranches;
+    }
+
+    public void setAcceptedBranches(String acceptedBranches) {
+        this.acceptedBranches = acceptedBranches;
+    }
+
+    public String getVerificationStatus() {
+        return verificationStatus;
+    }
+
+    public void setVerificationStatus(String verificationStatus) {
+        this.verificationStatus = verificationStatus;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getLastCheckedAt() {
+        return lastCheckedAt;
+    }
+
+    public void setLastCheckedAt(LocalDateTime lastCheckedAt) {
+        this.lastCheckedAt = lastCheckedAt;
     }
 }
