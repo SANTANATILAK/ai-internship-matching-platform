@@ -11,14 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tilak.internship_platform.entity.User;
 import com.tilak.internship_platform.repository.UserRepository;
 
-@CrossOrigin(origins = {
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175"
-})
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/ats")
 public class AtsController {

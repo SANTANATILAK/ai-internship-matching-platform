@@ -20,14 +20,7 @@ import com.tilak.internship_platform.repository.UserRepository;
 import com.tilak.internship_platform.service.MatchingService;
 import com.tilak.internship_platform.service.SkillService;
 
-@CrossOrigin(origins = {
-    "http://localhost:5173",
-    "http://localhost:5174",
-        "http://localhost:5175",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:5175"
-})
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/matching")
 public class MatchingController {
