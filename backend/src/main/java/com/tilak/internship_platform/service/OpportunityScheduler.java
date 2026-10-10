@@ -23,17 +23,18 @@ public class OpportunityScheduler {
                 this.opportunityCollector = opportunityCollector;
         }
 
-        @Scheduled(initialDelayString = "${opportunities.refresh-initial-delay-ms:0}", fixedDelayString = "${opportunities.refresh-interval-ms:3600000}")
+        @Scheduled(initialDelayString = "${opportunities.refresh-initial-delay-ms:0}", fixedDelayString = "${opportunities.refresh-interval-ms:600000}")
         public void collectOpportunities() {
-                logger.info("Hourly opportunity synchronization started");
+                logger.info("10-Minute opportunity and company synchronization started");
                 try {
                         opportunityCollector.collectOpportunities();
                         opportunityService.expirePastDeadlines();
+                        opportunityService.syncAllCompanies();
                         opportunityService.recordRefresh();
-                        logger.info("Hourly opportunity synchronization completed; {} verified openings remain active",
+                        logger.info("10-Minute opportunity and company synchronization completed; {} verified openings remain active",
                                         opportunityService.getActiveOpportunities().size());
                 } catch (Exception exception) {
-                        logger.error("Hourly opportunity synchronization failed", exception);
+                        logger.error("10-Minute opportunity synchronization failed", exception);
                 }
         }
 }

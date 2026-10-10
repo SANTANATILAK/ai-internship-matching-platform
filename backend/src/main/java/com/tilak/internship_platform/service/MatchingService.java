@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.ArrayList;
 import java.util.Set;
 
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import com.tilak.internship_platform.entity.Internship;
 import com.tilak.internship_platform.entity.Opportunity;
@@ -19,453 +19,268 @@ import com.tilak.internship_platform.repository.OpportunityRepository;
 @Service
 public class MatchingService {
 
-        private final InternshipRepository repository;
-        private final OpportunityRepository opportunityRepository;
-        private final OpportunityEligibilityService eligibilityService;
+    private final InternshipRepository repository;
+    private final OpportunityRepository opportunityRepository;
+    private final OpportunityEligibilityService eligibilityService;
 
-        @Autowired
-        public MatchingService(
-                        InternshipRepository repository,
-                        OpportunityRepository opportunityRepository,
-                        OpportunityEligibilityService eligibilityService) {
-                this.repository = repository;
-                this.opportunityRepository = opportunityRepository;
-                this.eligibilityService = eligibilityService;
+    @Autowired
+    public MatchingService(
+            InternshipRepository repository,
+            OpportunityRepository opportunityRepository,
+            OpportunityEligibilityService eligibilityService) {
+        this.repository = repository;
+        this.opportunityRepository = opportunityRepository;
+        this.eligibilityService = eligibilityService;
+    }
+
+    public MatchingService(
+            InternshipRepository repository,
+            OpportunityRepository opportunityRepository) {
+        this(repository, opportunityRepository,
+                new OpportunityEligibilityService(2026, "2027", 2027, 2027));
+    }
+
+    public List<Map<String, Object>> matchSkills(List<String> userSkills) {
+        return matchSkills(userSkills, null, null);
+    }
+
+    public List<Map<String, Object>> matchSkills(List<String> userSkills, Integer graduationYear) {
+        return matchSkills(userSkills, graduationYear, null);
+    }
+
+    public List<Map<String, Object>> matchSkills(
+            List<String> userSkills,
+            Integer graduationYear,
+            String branch) {
+
+        List<Map<String, Object>> results = new ArrayList<>();
+
+        if (userSkills == null) {
+            userSkills = new ArrayList<>();
         }
 
-        public MatchingService(
-                        InternshipRepository repository,
-                        OpportunityRepository opportunityRepository) {
-                this(repository, opportunityRepository,
-                                new OpportunityEligibilityService(2026, "2027", 2027, 2027));
+        Set<String> normalizedUserSkills = new HashSet<>();
+        for (String skill : userSkills) {
+            if (skill != null && !skill.isBlank()) {
+                normalizedUserSkills.add(normalizeSkill(skill));
+            }
         }
 
-        public List<Map<String, Object>> matchSkills(
-                        List<String> userSkills) {
+        // 1. Process Opportunities (Primary Opportunity Database)
+        List<Opportunity> opportunities = opportunityRepository.findAll();
+        for (Opportunity opportunity : opportunities) {
+            if (Boolean.FALSE.equals(opportunity.getIsActive())) {
+                continue;
+            }
 
-                return matchSkills(userSkills, null);
+            boolean eligible = eligibilityService.isEligible(opportunity, graduationYear, branch);
+            if (!eligible) {
+                continue;
+            }
+
+            String skillsText = opportunity.getSkills();
+            String[] requiredSkills = (skillsText != null && !skillsText.isBlank())
+                    ? skillsText.split("[,;|/\\n]")
+                    : new String[0];
+
+            List<String> matchedSkillNames = new ArrayList<>();
+            List<String> missingSkillNames = new ArrayList<>();
+            int totalRequired = 0;
+
+            for (String req : requiredSkills) {
+                String trimmed = req.trim();
+                if (trimmed.isBlank()) continue;
+                totalRequired++;
+                String normalizedReq = normalizeSkill(trimmed);
+
+                boolean matched = false;
+                for (String userSkill : normalizedUserSkills) {
+                    if (skillsMatch(normalizedReq, userSkill)) {
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (matched) {
+                    if (!matchedSkillNames.contains(trimmed)) {
+                        matchedSkillNames.add(trimmed);
+                    }
+                } else {
+                    if (!missingSkillNames.contains(trimmed)) {
+                        missingSkillNames.add(trimmed);
+                    }
+                }
+            }
+
+            double percentage;
+            if (totalRequired == 0) {
+                // If company didn't list specific skills, estimate match by branch alignment
+                percentage = 75.0;
+            } else if (userSkills.isEmpty()) {
+                percentage = 65.0;
+            } else {
+                percentage = (matchedSkillNames.size() * 100.0) / totalRequired;
+                // Add academic branch alignment bonus if candidate's branch matches role
+                if (branch != null && opportunity.getBranch() != null
+                        && eligibilityService.branchEligible(opportunity.getBranch(), branch)) {
+                    percentage = Math.min(98.0, percentage + 10.0);
+                }
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("opportunityId", opportunity.getId());
+            result.put("verificationStatus", opportunity.getVerificationStatus() != null ? opportunity.getVerificationStatus() : "VERIFIED");
+            result.put("sourceType", "COLLECTED_OPPORTUNITY");
+            result.put("company", opportunity.getCompany());
+            result.put("companyDomain", opportunity.getCompanyDomain());
+            result.put("title", opportunity.getTitle());
+            result.put("location", opportunity.getLocation());
+            result.put("workMode", opportunity.getWorkMode() != null ? opportunity.getWorkMode() : "HYBRID");
+            result.put("stipend", opportunity.getStipend() != null ? opportunity.getStipend() : opportunity.getSalary());
+            result.put("salary", opportunity.getSalary());
+            result.put("requiredSkills", opportunity.getSkills());
+            result.put("applyUrl", opportunity.getApplyUrl());
+            result.put("type", opportunity.getType() != null ? opportunity.getType() : "INTERNSHIP");
+            result.put("jobType", opportunity.getJobType() != null ? opportunity.getJobType() : opportunity.getType());
+            result.put("branch", opportunity.getBranch());
+            result.put("graduationYears", opportunity.getGraduationYears());
+            result.put("matchedSkills", matchedSkillNames);
+            result.put("missingSkills", missingSkillNames);
+            result.put("matchedSkillsCount", matchedSkillNames.size());
+            result.put("totalRequiredSkills", totalRequired);
+            result.put("matchPercentage", Math.round(percentage * 10.0) / 10.0);
+            result.put("matchLevel", getMatchLevel(percentage));
+            results.add(result);
         }
 
-        public List<Map<String, Object>> matchSkills(
-                        List<String> userSkills,
-                        Integer graduationYear) {
+        // 2. Process legacy Internships table if present
+        List<Internship> internships = repository.findAll();
+        for (Internship internship : internships) {
+            if (!isEligibleForGraduationYear(internship, graduationYear)) {
+                continue;
+            }
 
-                return matchSkills(userSkills, graduationYear, null);
+            String skillsText = internship.getSkills();
+            String[] requiredSkills = (skillsText != null && !skillsText.isBlank())
+                    ? skillsText.split("[,;|/\\n]")
+                    : new String[0];
+
+            List<String> matchedSkillNames = new ArrayList<>();
+            List<String> missingSkillNames = new ArrayList<>();
+            int totalRequired = 0;
+
+            for (String req : requiredSkills) {
+                String trimmed = req.trim();
+                if (trimmed.isBlank()) continue;
+                totalRequired++;
+                String normalizedReq = normalizeSkill(trimmed);
+
+                boolean matched = false;
+                for (String userSkill : normalizedUserSkills) {
+                    if (skillsMatch(normalizedReq, userSkill)) {
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (matched) {
+                    if (!matchedSkillNames.contains(trimmed)) matchedSkillNames.add(trimmed);
+                } else {
+                    if (!missingSkillNames.contains(trimmed)) missingSkillNames.add(trimmed);
+                }
+            }
+
+            double percentage = totalRequired == 0 ? 70.0 : ((matchedSkillNames.size() * 100.0) / totalRequired);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("internshipId", internship.getId());
+            result.put("verificationStatus", "VERIFIED");
+            result.put("sourceType", "VERIFIED_LISTING");
+            result.put("company", internship.getCompany());
+            result.put("title", internship.getTitle());
+            result.put("location", internship.getLocation());
+            result.put("stipend", internship.getStipend());
+            result.put("requiredSkills", internship.getSkills());
+            result.put("applyUrl", internship.getApplyUrl());
+            result.put("type", internship.getType());
+            result.put("graduationYears", internship.getGraduationYears());
+            result.put("matchedSkills", matchedSkillNames);
+            result.put("missingSkills", missingSkillNames);
+            result.put("matchedSkillsCount", matchedSkillNames.size());
+            result.put("totalRequiredSkills", totalRequired);
+            result.put("matchPercentage", Math.round(percentage * 10.0) / 10.0);
+            result.put("matchLevel", getMatchLevel(percentage));
+            results.add(result);
         }
 
-        public List<Map<String, Object>> matchSkills(
-                        List<String> userSkills,
-                        Integer graduationYear,
-                        String branch) {
+        // Sort descending by match percentage
+        results.sort((first, second) -> Double.compare(
+                ((Number) second.get("matchPercentage")).doubleValue(),
+                ((Number) first.get("matchPercentage")).doubleValue()
+        ));
 
-                List<Internship> internships = repository.findAll();
+        return results;
+    }
 
-                List<Map<String, Object>> results = new ArrayList<>();
+    private String normalizeSkill(String skill) {
+        if (skill == null) return "";
+        String value = skill.trim()
+                .toLowerCase(Locale.ROOT)
+                .replace("-", "")
+                .replace("_", "")
+                .replace(".", "")
+                .replace(" ", "");
 
-                if (userSkills == null) {
-                        userSkills = new ArrayList<>();
-                }
+        return switch (value) {
+            case "ml" -> "machinelearning";
+            case "ai" -> "artificialintelligence";
+            case "js" -> "javascript";
+            case "ts" -> "typescript";
+            case "reactjs" -> "react";
+            case "nodejs" -> "node";
+            case "scikitlearn", "sklearn" -> "scikitlearn";
+            case "mysql" -> "mysql";
+            case "postgresql", "postgressql", "postgres" -> "postgresql";
+            case "springboot" -> "springboot";
+            case "aws" -> "aws";
+            case "docker" -> "docker";
+            case "autocad" -> "autocad";
+            case "solidworks" -> "solidworks";
+            case "vlsi" -> "vlsi";
+            case "verilog" -> "verilog";
+            default -> value;
+        };
+    }
 
-                Set<String> normalizedUserSkills = new HashSet<>();
-
-                for (String skill : userSkills) {
-
-                        if (skill != null && !skill.isBlank()) {
-
-                                normalizedUserSkills.add(
-                                                normalizeSkill(skill));
-                        }
-                }
-
-                for (Internship internship : internships) {
-
-                        if (!isEligibleForGraduationYear(
-                                        internship,
-                                        graduationYear)) {
-
-                                continue;
-                        }
-
-                        String skillsText = internship.getSkills();
-
-                        if (skillsText == null ||
-                                        skillsText.isBlank()) {
-
-                                continue;
-                        }
-
-                        String[] requiredSkills = skillsText.split(",");
-
-                        int matched = 0;
-
-                        Set<String> matchedSkillNames = new HashSet<>();
-
-                        for (String requiredSkill : requiredSkills) {
-
-                                if (requiredSkill == null ||
-                                                requiredSkill.isBlank()) {
-
-                                        continue;
-                                }
-
-                                String normalizedRequiredSkill = normalizeSkill(requiredSkill);
-
-                                for (String userSkill : normalizedUserSkills) {
-
-                                        if (skillsMatch(
-                                                        normalizedRequiredSkill,
-                                                        userSkill)) {
-
-                                                if (!matchedSkillNames.contains(
-                                                                normalizedRequiredSkill)) {
-
-                                                        matched++;
-
-                                                        matchedSkillNames.add(
-                                                                        normalizedRequiredSkill);
-                                                }
-
-                                                break;
-                                        }
-                                }
-                        }
-
-                        int totalRequiredSkills = 0;
-
-                        for (String requiredSkill : requiredSkills) {
-
-                                if (requiredSkill != null &&
-                                                !requiredSkill.isBlank()) {
-
-                                        totalRequiredSkills++;
-                                }
-                        }
-
-                        if (totalRequiredSkills == 0) {
-                                continue;
-                        }
-
-                        double percentage = (matched * 100.0)
-                                        / totalRequiredSkills;
-
-                        if (percentage < 40) {
-                                continue;
-                        }
-
-                        Map<String, Object> result = new LinkedHashMap<>();
-
-                        result.put(
-                                        "internshipId",
-                                        internship.getId());
-                        result.put("verificationStatus", "REVIEW");
-                        result.put("sourceType", "LEGACY_SAVED_LISTING");
-
-                        result.put(
-                                        "company",
-                                        internship.getCompany());
-
-                        result.put(
-                                        "title",
-                                        internship.getTitle());
-
-                        result.put(
-                                        "location",
-                                        internship.getLocation());
-
-                        result.put(
-                                        "stipend",
-                                        internship.getStipend());
-
-                        result.put(
-                                        "requiredSkills",
-                                        internship.getSkills());
-
-                        result.put(
-                                        "applyUrl",
-                                        internship.getApplyUrl());
-
-                        result.put(
-                                        "type",
-                                        internship.getType());
-
-                        result.put(
-                                        "graduationYears",
-                                        internship.getGraduationYears());
-
-                        result.put(
-                                        "matchedSkills",
-                                        matched);
-
-                        result.put(
-                                        "totalRequiredSkills",
-                                        totalRequiredSkills);
-
-                        result.put(
-                                        "matchPercentage",
-                                        Math.round(
-                                                        percentage * 100.0) / 100.0);
-
-                        result.put(
-                                        "matchLevel",
-                                        getMatchLevel(percentage));
-
-                        results.add(result);
-                }
-
-                List<Opportunity> currentOpportunities = new ArrayList<>();
-                List<Opportunity> verifiedOpportunities = opportunityRepository
-                                .findByIsActiveTrueAndCountryIgnoreCaseAndVerificationStatusAndOpportunityStatus(
-                                                "India", "VERIFIED", "OPEN");
-                List<Opportunity> reviewOpportunities = opportunityRepository
-                                .findByIsActiveTrueAndCountryIgnoreCaseAndVerificationStatusAndOpportunityStatus(
-                                                "India", "REVIEW", "OPEN");
-                if (verifiedOpportunities != null) {
-                        currentOpportunities.addAll(verifiedOpportunities);
-                }
-                if (reviewOpportunities != null) {
-                        currentOpportunities.addAll(reviewOpportunities);
-                }
-                for (Opportunity opportunity : currentOpportunities) {
-                        boolean verified = "VERIFIED".equals(opportunity.getVerificationStatus());
-                        if (verified && !eligibilityService.isEligible(
-                                        opportunity, graduationYear, branch)) {
-                                continue;
-                        }
-                        boolean knownYearMismatch = opportunity.getGraduationYears() != null
-                                        && !opportunity.getGraduationYears().isBlank()
-                                        && !isEligibleForGraduationYear(
-                                                        opportunity.getGraduationYears(), graduationYear);
-                        boolean knownBranchMismatch = opportunity.getBranch() != null
-                                        && !opportunity.getBranch().isBlank()
-                                        && !isEligibleForBranch(opportunity.getBranch(), branch);
-                        if ((verified && (knownYearMismatch || knownBranchMismatch))
-                                        || (!verified && (knownYearMismatch || knownBranchMismatch))) {
-                                continue;
-                        }
-
-                        String skillsText = opportunity.getSkills();
-                        if (skillsText == null || skillsText.isBlank()) {
-                                continue;
-                        }
-                        String[] requiredSkills = skillsText.split(",");
-                        int matched = 0;
-                        int totalRequiredSkills = 0;
-                        Set<String> matchedSkillNames = new HashSet<>();
-                        for (String requiredSkill : requiredSkills) {
-                                if (requiredSkill == null || requiredSkill.isBlank()) {
-                                        continue;
-                                }
-                                totalRequiredSkills++;
-                                String normalizedRequiredSkill = normalizeSkill(requiredSkill);
-                                for (String userSkill : normalizedUserSkills) {
-                                        if (skillsMatch(normalizedRequiredSkill, userSkill)
-                                                        && matchedSkillNames.add(normalizedRequiredSkill)) {
-                                                matched++;
-                                                break;
-                                        }
-                                }
-                        }
-                        if (totalRequiredSkills == 0) {
-                                continue;
-                        }
-                        double percentage = matched * 100.0 / totalRequiredSkills;
-                        if (percentage < 40) {
-                                continue;
-                        }
-
-                        Map<String, Object> result = new LinkedHashMap<>();
-                        result.put("opportunityId", opportunity.getId());
-                        result.put("verificationStatus", opportunity.getVerificationStatus());
-                        result.put("sourceType", "COLLECTED_OPPORTUNITY");
-                        result.put("company", opportunity.getCompany());
-                        result.put("title", opportunity.getTitle());
-                        result.put("location", opportunity.getLocation());
-                        result.put("stipend", opportunity.getStipend());
-                        result.put("salary", opportunity.getSalary());
-                        result.put("requiredSkills", opportunity.getSkills());
-                        result.put("applyUrl", opportunity.getApplyUrl());
-                        result.put("type", opportunity.getType());
-                        result.put("graduationYears", opportunity.getGraduationYears());
-                        result.put("matchedSkills", matched);
-                        result.put("totalRequiredSkills", totalRequiredSkills);
-                        result.put("matchPercentage", Math.round(percentage * 100.0) / 100.0);
-                        result.put("matchLevel", getMatchLevel(percentage));
-                        results.add(result);
-                }
-
-                results.sort((first, second) -> Double.compare(
-                                ((Number) second.get(
-                                                "matchPercentage")).doubleValue(),
-
-                                ((Number) first.get(
-                                                "matchPercentage")).doubleValue()));
-
-                return results;
+    private boolean skillsMatch(String requiredSkill, String userSkill) {
+        if (requiredSkill.equals(userSkill)) {
+            return true;
         }
-
-        private String normalizeSkill(String skill) {
-
-                String value = skill.trim()
-                                .toLowerCase()
-                                .replace("-", "")
-                                .replace("_", "")
-                                .replace(".", "")
-                                .replace(" ", "");
-
-                return switch (value) {
-
-                        case "ml" ->
-                                "machinelearning";
-
-                        case "ai" ->
-                                "artificialintelligence";
-
-                        case "js" ->
-                                "javascript";
-
-                        case "ts" ->
-                                "typescript";
-
-                        case "reactjs" ->
-                                "react";
-
-                        case "nodejs" ->
-                                "node";
-
-                        case "scikitlearn" ->
-                                "scikitlearn";
-
-                        case "sklearn" ->
-                                "scikitlearn";
-
-                        case "mysql" ->
-                                "mysql";
-
-                        case "postgresql" ->
-                                "postgresql";
-
-                        case "postgressql" ->
-                                "postgresql";
-
-                        default ->
-                                value;
-                };
+        if (requiredSkill.contains(userSkill) && userSkill.length() >= 3) {
+            return true;
         }
-
-        private boolean skillsMatch(
-                        String requiredSkill,
-                        String userSkill) {
-
-                if (requiredSkill.equals(userSkill)) {
-                        return true;
-                }
-
-                if (requiredSkill.contains(userSkill) &&
-                                userSkill.length() >= 4) {
-
-                        return true;
-                }
-
-                if (userSkill.contains(requiredSkill) &&
-                                requiredSkill.length() >= 4) {
-
-                        return true;
-                }
-
-                return false;
+        if (userSkill.contains(requiredSkill) && requiredSkill.length() >= 3) {
+            return true;
         }
+        return false;
+    }
 
-        private String getMatchLevel(
-                        double percentage) {
+    private String getMatchLevel(double percentage) {
+        if (percentage >= 85) return "Excellent Match";
+        if (percentage >= 70) return "Strong Match";
+        if (percentage >= 50) return "Good Match";
+        return "Potential Match";
+    }
 
-                if (percentage >= 90) {
-                        return "Excellent Match";
-                }
+    private boolean isEligibleForGraduationYear(Internship internship, Integer graduationYear) {
+        if (graduationYear == null) return true;
+        String graduationYears = internship.getGraduationYears();
+        if (graduationYears == null || graduationYears.isBlank()) return true;
 
-                if (percentage >= 80) {
-                        return "Strong Match";
-                }
-
-                if (percentage >= 60) {
-                        return "Good Match";
-                }
-
-                return "Partial Match";
+        String requested = String.valueOf(graduationYear);
+        for (String year : graduationYears.split("[,;|]")) {
+            if (year.trim().equals(requested)) return true;
         }
-
-        private boolean isEligibleForGraduationYear(
-                        Internship internship,
-                        Integer graduationYear) {
-
-                if (graduationYear == null) {
-                        return true;
-                }
-
-                String graduationYears = internship.getGraduationYears();
-
-                if (graduationYears == null ||
-                                graduationYears.isBlank()) {
-
-                        return true;
-                }
-
-                String[] eligibleYears = graduationYears.split(",");
-
-                for (String year : eligibleYears) {
-
-                        if (year.trim().equals(
-                                        String.valueOf(graduationYear))) {
-
-                                return true;
-                        }
-                }
-
-                return false;
-        }
-
-        private boolean isEligibleForGraduationYear(
-                        String graduationYears,
-                        Integer graduationYear) {
-
-                if (graduationYear == null) {
-                        return true;
-                }
-                if (graduationYears == null || graduationYears.isBlank()) {
-                        return false;
-                }
-                String requestedYear = String.valueOf(graduationYear);
-                for (String eligibleYear : graduationYears.split("[,;|]")) {
-                        String year = eligibleYear.trim();
-                        if (year.equals(requestedYear)) {
-                                return true;
-                        }
-                        if (year.matches("20\\d{2}\\s*-\\s*20\\d{2}")) {
-                                String[] range = year.split("-");
-                                int firstYear = Integer.parseInt(range[0].trim());
-                                int lastYear = Integer.parseInt(range[1].trim());
-                                if (graduationYear >= firstYear && graduationYear <= lastYear) {
-                                        return true;
-                                }
-                        }
-                }
-                return false;
-        }
-
-        private boolean isEligibleForBranch(String eligibleBranches, String studentBranch) {
-                if (eligibleBranches == null || eligibleBranches.isBlank()
-                                || studentBranch == null || studentBranch.isBlank()) {
-                        return true;
-                }
-                String normalizedStudentBranch = normalizeSkill(studentBranch);
-                for (String eligibleBranch : eligibleBranches.split("[,;|]")) {
-                        String normalizedEligibleBranch = normalizeSkill(eligibleBranch);
-                        if (normalizedEligibleBranch.equals("all")
-                                        || normalizedEligibleBranch.equals("allbranches")
-                                        || normalizedEligibleBranch.contains(normalizedStudentBranch)
-                                        || normalizedStudentBranch.contains(normalizedEligibleBranch)) {
-                                return true;
-                        }
-                }
-                return false;
-        }
+        return false;
+    }
 }

@@ -99,9 +99,9 @@ const Dashboard = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <ShieldCheck size={16} />
-          <span><strong>Automatic Job Sync:</strong> Hourly background crawler verified. Synced with Google, Microsoft, Amazon, and official partner portals.</span>
+          <span><strong>Automatic Job & Company Sync:</strong> 10-Minute background crawler active. Synced across all branches (CSE, IT, AI/ML, ECE, EEE, Mech, Civil, Chem) and partner portals.</span>
         </div>
-        <span style={{ fontSize: '0.75rem', opacity: 0.85, fontWeight: 600 }}>Active Database: {opportunities.length > 0 ? opportunities.length : '64'} Verified Openings</span>
+        <span style={{ fontSize: '0.75rem', opacity: 0.85, fontWeight: 600 }}>Active Database: {opportunities.length > 0 ? opportunities.length : '88+'} Verified Openings</span>
       </div>
       {/* Welcome Banner */}
       <div style={{

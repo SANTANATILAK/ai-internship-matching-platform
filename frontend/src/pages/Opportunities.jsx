@@ -11,6 +11,7 @@ const Opportunities = () => {
   const [workType, setWorkType] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
+  const [branch, setBranch] = useState('');
 
   const fetchOpportunities = async () => {
     setLoading(true);
@@ -21,11 +22,12 @@ const Opportunities = () => {
       if (searchQuery.trim()) {
         endpoint = API_ENDPOINTS.OPPORTUNITIES_SEARCH;
         params.append('query', searchQuery.trim());
-      } else if (workType || type || location) {
+      } else if (workType || type || location || branch) {
         endpoint = API_ENDPOINTS.OPPORTUNITIES_FILTER;
         if (workType) params.append('workType', workType);
         if (type) params.append('type', type);
         if (location) params.append('location', location);
+        if (branch) params.append('branch', branch);
       }
 
       const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
@@ -41,7 +43,7 @@ const Opportunities = () => {
 
   useEffect(() => {
     fetchOpportunities();
-  }, [workType, type]);
+  }, [workType, type, branch]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -53,6 +55,7 @@ const Opportunities = () => {
     setWorkType('');
     setType('');
     setLocation('');
+    setBranch('');
     fetchOpportunities();
   };
 
@@ -106,11 +109,27 @@ const Opportunities = () => {
             </select>
           </div>
 
+          <div style={{ width: '170px' }}>
+            <select
+              className="form-select"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+            >
+              <option value="">All Branches</option>
+              <option value="CSE">CSE / IT</option>
+              <option value="AI">AI / Data Science</option>
+              <option value="ECE">ECE / EEE</option>
+              <option value="Mechanical">Mechanical</option>
+              <option value="Civil">Civil</option>
+              <option value="Chemical">Chemical / Biotech</option>
+            </select>
+          </div>
+
           <button type="submit" className="btn btn-primary" style={{ padding: '0.625rem 1.25rem' }}>
             <Search size={18} /> Search
           </button>
 
-          {(searchQuery || workType || type || location) && (
+          {(searchQuery || workType || type || location || branch) && (
             <button type="button" onClick={resetFilters} className="btn btn-secondary" style={{ padding: '0.625rem 1rem' }}>
               <RotateCcw size={16} /> Reset
             </button>

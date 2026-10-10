@@ -39,8 +39,16 @@ const OpportunityCard = ({
 
   const matchScore = matchData ? matchData.matchPercentage : null;
   const matchLevel = matchData ? matchData.matchLevel : null;
-  const matchedSkills = matchData ? matchData.matchedSkills : [];
-  const missingSkills = matchData ? matchData.missingSkills : [];
+  const rawMatchedSkills = matchData ? matchData.matchedSkills : [];
+  const rawMissingSkills = matchData ? matchData.missingSkills : [];
+  const branch = opportunity?.branch || (matchData && matchData.branch);
+
+  const matchedSkills = Array.isArray(rawMatchedSkills)
+    ? rawMatchedSkills
+    : (typeof rawMatchedSkills === 'string' ? rawMatchedSkills.split(',').map(s => s.trim()).filter(Boolean) : []);
+  const missingSkills = Array.isArray(rawMissingSkills)
+    ? rawMissingSkills
+    : (typeof rawMissingSkills === 'string' ? rawMissingSkills.split(',').map(s => s.trim()).filter(Boolean) : []);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -142,6 +150,11 @@ const OpportunityCard = ({
         {stipend && (
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600, color: 'var(--text-primary)' }}>
             <Banknote size={15} color="#f59e0b" /> {stipend}
+          </span>
+        )}
+        {branch && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+            {branch}
           </span>
         )}
       </div>

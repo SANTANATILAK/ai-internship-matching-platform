@@ -70,11 +70,13 @@ public class OpportunityController {
     public List<Opportunity> filterOpportunities(
             @RequestParam(required = false) String workType,
             @RequestParam(required = false) String type,
-            @RequestParam(required = false) String location) {
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String branch) {
         return opportunityService.getActiveOpportunities().stream()
                 .filter(o -> workType == null || workType.isBlank() || (o.getWorkMode() != null && o.getWorkMode().equalsIgnoreCase(workType)))
                 .filter(o -> type == null || type.isBlank() || ((o.getType() != null && o.getType().equalsIgnoreCase(type)) || (o.getJobType() != null && o.getJobType().equalsIgnoreCase(type))))
                 .filter(o -> location == null || location.isBlank() || (o.getLocation() != null && o.getLocation().toLowerCase().contains(location.toLowerCase())))
+                .filter(o -> branch == null || branch.isBlank() || (o.getBranch() != null && o.getBranch().toLowerCase().contains(branch.toLowerCase())))
                 .toList();
     }
 

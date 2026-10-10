@@ -1,6 +1,7 @@
 package com.tilak.internship_platform.controller;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,56 +67,50 @@ public class MatchingController {
                 targetId = Long.valueOf(principal.getName());
             } catch (Exception ignored) {}
         }
-        if (targetId == null) {
-            return Map.of("message", "User not specified", "matches", List.of());
+
+        User user = null;
+        if (targetId != null) {
+            user = userRepository.findById(targetId).orElse(null);
         }
+
+        Integer graduationYear = user != null ? user.getGraduationYear() : 2027;
+        String branch = user != null ? user.getBranch() : null;
 
         final Long finalTargetId = targetId;
-        List<Resume> resumes = resumeRepository.findAll()
+        List<Resume> resumes = targetId != null ? resumeRepository.findAll()
                 .stream()
-                .filter(resume ->
-                    finalTargetId.equals(resume.getUserId()))
-                .toList();
+                .filter(resume -> finalTargetId.equals(resume.getUserId()))
+                .toList() : List.of();
 
-        if (resumes.isEmpty()) {
-            return Map.of(
-                    "message",
-                    "No resume found for this user",
-                    "matches", List.of()
-            );
+        List<String> skills = new ArrayList<>();
+        Resume resume = null;
+
+        if (!resumes.isEmpty()) {
+            resume = resumes.get(resumes.size() - 1);
+            if (resume.getExtractedText() != null && !resume.getExtractedText().isBlank()) {
+                skills = skillService.extractSkills(resume.getExtractedText());
+            }
         }
-
-        Resume resume =
-                resumes.get(resumes.size() - 1);
-
-        List<String> skills =
-                skillService.extractSkills(
-                        resume.getExtractedText());
-
-        User user =
-                userRepository.findById(finalTargetId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "User not found"
-                                ));
-
-        Integer graduationYear =
-                user.getGraduationYear();
 
         List<Map<String, Object>> matches =
                 matchingService.matchSkills(
                         skills,
                         graduationYear,
-                        user.getBranch()
+                        branch
                 );
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("userId", finalTargetId);
-        response.put("resumeId", resume.getId());
-        response.put("resumeFile", resume.getFileName());
+        response.put("hasResume", resume != null);
+        if (resume != null) {
+            response.put("resumeId", resume.getId());
+            response.put("resumeFile", resume.getFileName());
+        } else {
+            response.put("note", "Upload your resume in the Resume Upload tab for personalized skill gap and ATS scoring!");
+        }
         response.put("graduationYear", graduationYear);
-        response.put("branch", user.getBranch());
+        response.put("branch", branch);
         response.put("skills", skills);
         response.put("matches", matches);
         response.put("data", matches);

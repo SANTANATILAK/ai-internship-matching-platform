@@ -251,6 +251,17 @@ public class OpportunityService {
         return first == null || first.isBlank() ? fallback : first;
     }
 
+    public void syncAllCompanies() {
+        if (companyRepository == null) return;
+        LocalDateTime now = LocalDateTime.now();
+        List<Opportunity> all = repository.findAll();
+        for (Opportunity opp : all) {
+            if (opp.getCompany() != null && !opp.getCompany().isBlank()) {
+                upsertCompany(opp, now);
+            }
+        }
+    }
+
     public void recordRefresh() {
         lastRefreshAt = LocalDateTime.now();
     }
