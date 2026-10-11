@@ -12,7 +12,7 @@ const getBaseUrl = () => {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     return 'http://localhost:9090';
   }
-  return 'https://clothing-cells-setting-daily.trycloudflare.com';
+  return 'https://capture-mentioned-folk-giving.trycloudflare.com';
 };
 
 const baseURL = getBaseUrl();

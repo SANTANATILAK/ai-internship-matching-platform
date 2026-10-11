@@ -67,7 +67,25 @@ public class MatchingService {
         }
 
         // 1. Process Opportunities (Primary Opportunity Database)
-        List<Opportunity> opportunities = opportunityRepository.findAll();
+        List<Opportunity> opportunities = new ArrayList<>();
+        List<Opportunity> verifiedOpps = opportunityRepository
+                .findByIsActiveTrueAndCountryIgnoreCaseAndVerificationStatusAndOpportunityStatus(
+                        "India", "VERIFIED", "OPEN");
+        if (verifiedOpps != null) {
+            opportunities.addAll(verifiedOpps);
+        }
+        List<Opportunity> reviewOpps = opportunityRepository
+                .findByIsActiveTrueAndCountryIgnoreCaseAndVerificationStatusAndOpportunityStatus(
+                        "India", "REVIEW", "OPEN");
+        if (reviewOpps != null) {
+            opportunities.addAll(reviewOpps);
+        }
+        if (opportunities.isEmpty()) {
+            List<Opportunity> all = opportunityRepository.findAll();
+            if (all != null) {
+                opportunities.addAll(all);
+            }
+        }
         for (Opportunity opportunity : opportunities) {
             if (Boolean.FALSE.equals(opportunity.getIsActive())) {
                 continue;
@@ -119,11 +137,15 @@ public class MatchingService {
             } else if (userSkills.isEmpty()) {
                 percentage = 65.0;
             } else {
-                percentage = (matchedSkillNames.size() * 100.0) / totalRequired;
-                // Add academic branch alignment bonus if candidate's branch matches role
-                if (branch != null && opportunity.getBranch() != null
-                        && eligibilityService.branchEligible(opportunity.getBranch(), branch)) {
-                    percentage = Math.min(98.0, percentage + 10.0);
+                if (matchedSkillNames.size() == totalRequired) {
+                    percentage = 100.0;
+                } else {
+                    percentage = (matchedSkillNames.size() * 100.0) / totalRequired;
+                    // Add academic branch alignment bonus if candidate's branch matches role
+                    if (branch != null && opportunity.getBranch() != null
+                            && eligibilityService.branchEligible(opportunity.getBranch(), branch)) {
+                        percentage = Math.min(95.0, percentage + 10.0);
+                    }
                 }
             }
 
@@ -213,11 +235,19 @@ public class MatchingService {
             results.add(result);
         }
 
-        // Sort descending by match percentage
-        results.sort((first, second) -> Double.compare(
-                ((Number) second.get("matchPercentage")).doubleValue(),
-                ((Number) first.get("matchPercentage")).doubleValue()
-        ));
+        // Sort descending by match percentage, then prioritize VERIFIED over REVIEW
+        results.sort((first, second) -> {
+            int cmp = Double.compare(
+                    ((Number) second.get("matchPercentage")).doubleValue(),
+                    ((Number) first.get("matchPercentage")).doubleValue()
+            );
+            if (cmp != 0) return cmp;
+            String s1 = (String) first.get("verificationStatus");
+            String s2 = (String) second.get("verificationStatus");
+            if ("VERIFIED".equalsIgnoreCase(s1) && !"VERIFIED".equalsIgnoreCase(s2)) return -1;
+            if (!"VERIFIED".equalsIgnoreCase(s1) && "VERIFIED".equalsIgnoreCase(s2)) return 1;
+            return 0;
+        });
 
         return results;
     }
