@@ -77,9 +77,3 @@ ai-internship-matching-platform/
 │   └── src/            # Pages, Components, Context, API client
 └── README.md
 ```
-
----
-
-## 👤 Author
-
-**Tilak Santan** — [@SANTANATILAK](https://github.com/SANTANATILAK)
