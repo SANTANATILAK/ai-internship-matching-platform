@@ -63,6 +63,17 @@ public class UserController {
             admin.setCollege("Admin Console");
             userRepository.save(admin);
         }
+        if (userRepository.findByEmail("tilak@gmail.com").isEmpty()) {
+            User student = new User();
+            student.setName("Santana Tilak");
+            student.setEmail("tilak@gmail.com");
+            student.setPassword(passwordEncoder.encode("password123"));
+            student.setRole("STUDENT");
+            student.setBranch("Computer Science");
+            student.setGraduationYear(2026);
+            student.setCollege("B.Tech Engineering");
+            userRepository.save(student);
+        }
     }
 
     @PostMapping("/register")
@@ -81,21 +92,28 @@ public class UserController {
         String normalizedEmail = user.getEmail().trim().toLowerCase();
         Optional<User> existingUser = userRepository.findByEmail(normalizedEmail);
 
+        User targetUser;
         if (existingUser.isPresent()) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.CONFLICT,
-                    "An account with this email already exists. Please sign in instead."
-            );
+            targetUser = existingUser.get();
+            if (user.getName() != null && !user.getName().isBlank()) targetUser.setName(user.getName());
+            if (user.getBranch() != null && !user.getBranch().isBlank()) targetUser.setBranch(user.getBranch());
+            if (user.getCollege() != null && !user.getCollege().isBlank()) targetUser.setCollege(user.getCollege());
+            if (user.getGraduationYear() != null) targetUser.setGraduationYear(user.getGraduationYear());
+            if (user.getPhone() != null && !user.getPhone().isBlank()) targetUser.setPhone(user.getPhone());
+            targetUser.setPassword(passwordEncoder.encode(user.getPassword()));
+            if (targetUser.getRole() == null || targetUser.getRole().isBlank()) {
+                targetUser.setRole("STUDENT");
+            }
+        } else {
+            targetUser = user;
+            if (targetUser.getRole() == null || targetUser.getRole().isBlank()) {
+                targetUser.setRole("STUDENT");
+            }
+            targetUser.setEmail(normalizedEmail);
+            targetUser.setPassword(passwordEncoder.encode(user.getPassword()));
         }
 
-        if (user.getRole() == null || user.getRole().isBlank()) {
-            user.setRole("STUDENT");
-        }
-
-        user.setEmail(normalizedEmail);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        User savedUser = userRepository.save(user);
+        User savedUser = userRepository.save(targetUser);
 
         String token = jwtService.generateToken(
                 savedUser.getId(),
